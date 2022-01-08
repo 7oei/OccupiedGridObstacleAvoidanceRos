@@ -22,6 +22,10 @@
 
 #include <boost/bind.hpp>
 
+#include <ros/ros.h>
+#include <nav_msgs/Path.h> 
+#include <nav_msgs/OccupancyGrid.h>
+
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
@@ -37,8 +41,9 @@ class Planning{
     void CreateCube();
     void PlannerSelector();
     void printEdge(std::ostream &os, const ob::StateSpacePtr &space, const ob::PlannerDataVertex &vertex);
+    nav_msgs::Path extractPath(ob::ProblemDefinition* pdef);
     bool isStateValid(const ob::State *state);
-    void planWithSimpleSetup();
+    nav_msgs::Path planWithSimpleSetup();
     void output_plt(std::string plt_output);
     int OpenGnuplot();
 

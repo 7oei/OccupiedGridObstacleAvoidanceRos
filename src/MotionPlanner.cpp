@@ -56,7 +56,7 @@ void Planning::CreateCube()
     obstacle.xrange[0] = xMin[ob]; obstacle.yrange[0] = yMin[ob];
     obstacle.xrange[1] = xMax[ob]; obstacle.yrange[1] = yMax[ob];
     for (int i = 0; i < 2; ++i){
-      cube << obstacle.xrange[0] << "\t" << obstacle.yrange[0] << "\t" << std::endl;
+      cube << obstacle.xrange[0] << "\t" << obstacle.yrange[0] << "\t" << std::endl;//ポリゴン辿ってる
       cube << obstacle.xrange[1] << "\t" << obstacle.yrange[0] << "\t" << std::endl;
       cube << obstacle.xrange[1] << "\t" << obstacle.yrange[1] << "\t" << std::endl;
       cube << obstacle.xrange[0] << "\t" << obstacle.yrange[1] << "\t" << std::endl;
@@ -131,8 +131,48 @@ void Planning::printEdge(std::ostream &os, const ob::StateSpacePtr &space, const
   }
 }
 
+nav_msgs::Path Planning::extractPath(ob::ProblemDefinition* pdef){
+    nav_msgs::Path plannedPath;
+    plannedPath.header.frame_id = "/map";
+    // get the obtained path
+    cout<<"get path in extractPath start"<<endl;
+    ob::PathPtr path = pdef->getSolutionPath();
+    cout<<"get path in extractPath end"<<endl;
+    // convert to geometric path
+    cout<<"get geometric start"<<endl;
+    const auto *path_ = path.get()->as<og::PathGeometric>();
+    cout<<"get geometric end"<<endl;
+    // iterate over each position
+    for(unsigned int i=0; i<path_->getStateCount(); ++i){
+        // get state
+        const ob::State* state = path_->getState(i);
+        // // get x coord of the robot
+        // const auto *coordX =
+        //         state->as<ob::CompoundState>()->as<ob::RealVectorStateSpace::StateType>(0);
+        // // get y coord of the robot
+        // const auto *coordY =
+        //         state->as<ob::CompoundState>()->as<ob::RealVectorStateSpace::StateType>(1);
+        const ob::SE2StateSpace::StateType *state_2d= state->as<ob::SE2StateSpace::StateType>();
+        const double &x(state_2d->getX()), &y(state_2d->getY());
+        // fill in the ROS PoseStamped structure...
+        geometry_msgs::PoseStamped poseMsg;
+        poseMsg.pose.position.x = x;
+        poseMsg.pose.position.y = y;
+        poseMsg.pose.position.z = 0.01;
+        poseMsg.pose.orientation.w = 1.0;
+        poseMsg.pose.orientation.x = 0.0;
+        poseMsg.pose.orientation.y = 0.0;
+        poseMsg.pose.orientation.z = 0.0;
+        poseMsg.header.frame_id = "/map";
+        poseMsg.header.stamp = ros::Time::now();
+        // ... and add the pose to the path
+        plannedPath.poses.push_back(poseMsg);
+    }
+    return plannedPath;
+}
 
-void Planning::planWithSimpleSetup()
+
+nav_msgs::Path Planning::planWithSimpleSetup()
 {
   // Construct the state space where we are planning
   ob::StateSpacePtr space(new ob::SE2StateSpace());
@@ -206,19 +246,25 @@ void Planning::planWithSimpleSetup()
   if (solved)
   {
     // Print the solution path (that is not simplified yet) to a file
-    std::ofstream ofs0("/home/adachi/ros1_ws/src/OccupiedGridObstacleAvoidanceRos/plot/path0.dat");
+    std::ofstream ofs0("/home/adachi/ros1_ws/src/OccupiedGridObstacleAvoidanceRos/plot/path0.dat");//ギザギザ経路
     ss.getSolutionPath().printAsMatrix(ofs0);
 
-    // Simplify the solution
+    // Simplify the solution        //ここで経路のエッジを減らしてる！！
     ss.simplifySolution();
     cout << "----------------" << endl;
     cout << "Found solution:" << endl;
     // Print the solution path to screen
     ss.getSolutionPath().print(cout);
-
     // Print the solution path to a file
     std::ofstream ofs("/home/adachi/ros1_ws/src/OccupiedGridObstacleAvoidanceRos/plot/path.dat");
     ss.getSolutionPath().printAsMatrix(ofs);
+    //経路を取得
+    // auto pdef(std::make_shared<ob::ProblemDefinition>(ss));
+    cout << "get path start" << endl;
+    auto pdef = ss.getProblemDefinition();
+    nav_msgs::Path planned_path;
+    planned_path = extractPath(pdef.get());
+    cout << "get path end" << endl;
 
     // Get the planner data to visualize the vertices and the edges
     ob::PlannerData pdat(ss.getSpaceInformation());
@@ -247,6 +293,7 @@ void Planning::planWithSimpleSetup()
         ofs_e<<endl<<endl;
       }
     }
+    return planned_path;
   }
   else
     cout << "No solution found" << endl;
