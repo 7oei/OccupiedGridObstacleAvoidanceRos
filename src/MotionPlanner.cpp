@@ -10,6 +10,15 @@ Planning::Planning(std::string fileName){
   selector = 7;
 }
 
+void Planning::setStart(double start[3]){
+  xStart = start[0];
+  yStart = start[1];
+}
+
+void Planning::setGoal(double goal[3]){
+  xGoal = goal[0];
+  yGoal = goal[1];
+}
 
 void Planning::initFromFile(std::string fileName)
 {

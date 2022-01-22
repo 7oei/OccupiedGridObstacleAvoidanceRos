@@ -38,6 +38,8 @@ class Planning{
   public:
     Planning(std::string fileName);
     void initFromFile(std::string fileName);
+    void setGoal(double goal[3]);
+    void setStart(double start[3]);
     void CreateCube();
     void PlannerSelector();
     void printEdge(std::ostream &os, const ob::StateSpacePtr &space, const ob::PlannerDataVertex &vertex);
