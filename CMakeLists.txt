@@ -32,6 +32,13 @@ include_directories(${Boost_INCLUDE_DIR})
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+find_package(cv_bridge REQUIRED)
+
+find_package(image_transport REQUIRED)
+
 add_executable(OccupiedGridObstacleAvoidanceRos src/main.cpp src/MotionPlanner.cpp src/OptimizationObjectives.cpp)
 
 target_link_libraries(OccupiedGridObstacleAvoidanceRos
@@ -39,4 +46,5 @@ target_link_libraries(OccupiedGridObstacleAvoidanceRos
   ${Boost_LIBRARIES}
   ${OMPL_LIBRARIES}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${OpenCV_LIBRARIES}
 )

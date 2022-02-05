@@ -111,17 +111,37 @@ void Planning::PlannerSelector()
   }
 }
 
+Eigen::Vector2i Planning::m2pix(Eigen::Vector2d m_point, float cell_size, Eigen::Vector3d origin)
+{
+  Eigen::Vector2i pix_point;
+  // pix_point.x() = ((m_point.x() / cell_size) + (cost_mat.size().width / 2));
+  // pix_point.y() = ((m_point.y() / cell_size) + (cost_mat.size().height / 2));
+  pix_point.x() = (m_point.x() / cell_size) + origin.x();
+  pix_point.y() = (m_point.y() / cell_size) + origin.y();
+  return pix_point;
+}
 
 bool Planning::isStateValid(const ob::State *state)
 {
   const ob::SE2StateSpace::StateType *state_2d= state->as<ob::SE2StateSpace::StateType>();
   const double &x(state_2d->getX()), &y(state_2d->getY());
-
-  for (int i = 0; i < numObstacles; ++i){
-    if (xMin[i] <= x && x <= xMax[i] && yMin[i] <= y && y <= yMax[i]){
-      return false;
-    }
+  Eigen::Vector2i pix_point;
+  Eigen::Vector2d m_point;
+  m_point << x,y;
+  pix_point = m2pix(m_point,cell_size,map_origin);
+  if(pix_point.y()<0||obstacle_mat.size().height<=pix_point.y()) return false;
+  if(pix_point.x()<0||obstacle_mat.size().width<=pix_point.x()) return false;
+  if(obstacle_mat.at<int8_t>(pix_point.y(), pix_point.x()) > 50) {
+    std::cout << "state(" << m_point.x() << "," << m_point.y() << ") is invalid" << std::endl;
+    return false;
   }
+
+  // for (int i = 0; i < numObstacles; ++i){
+  //   if (xMin[i] <= x && x <= xMax[i] && yMin[i] <= y && y <= yMax[i]){
+  //     return false;
+  //   }
+  // }
+  // std::cout << "state(" << m_point.x() << "," << m_point.y() << ") is valid" << std::endl;
 
   return true;
 }
@@ -244,12 +264,12 @@ nav_msgs::Path Planning::planWithSimpleSetup()
   cout << "----------------" << endl;
 
   ompl::base::OptimizationObjectivePtr objective;
-  objective.reset(new ob::MechanicalWorkOptimizationObjectiveMod(si, 0.1));
+  objective.reset(new ob::MechanicalWorkOptimizationObjectiveMod(si, 0.00001));//0.1
   // objective.reset(new ompl::base::PathLengthOptimizationObjective(si));
   ss.setOptimizationObjective(objective);
 
   // Execute the planning algorithm
-  ob::PlannerStatus solved = ss.solve(10.0);
+  ob::PlannerStatus solved = ss.solve(0.001);//10.0
 
   // If we have a solution,ClearanceObjective
   if (solved)

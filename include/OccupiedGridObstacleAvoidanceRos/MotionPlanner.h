@@ -26,6 +26,12 @@
 #include <nav_msgs/Path.h> 
 #include <nav_msgs/OccupancyGrid.h>
 
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <sensor_msgs/image_encodings.h>
+
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
@@ -33,6 +39,8 @@ typedef struct {
   double xrange[2];
   double yrange[2];
 } RANGE;
+
+
 
 class Planning{
   public:
@@ -48,7 +56,10 @@ class Planning{
     nav_msgs::Path planWithSimpleSetup();
     void output_plt(std::string plt_output);
     int OpenGnuplot();
-
+    Eigen::Vector2i m2pix(Eigen::Vector2d m_point, float cell_size, Eigen::Vector3d origin);
+    Eigen::Vector3d map_origin;
+    float cell_size = 0.05; 
+    cv::Mat obstacle_mat;
   private:
     double* xMin;
     double* xMax;

@@ -4,10 +4,14 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Path.h> 
 #include <nav_msgs/OccupancyGrid.h>
+#include <tf/tf.h>
+#include <tf2_eigen/tf2_eigen.h>
+#include <sensor_msgs/Image.h> 
 
 Planning planning("/home/adachi/ros1_ws/src/OccupiedGridObstacleAvoidanceRos/plot/testcase1.dat");
 
-ros::Publisher path_pub;
+ros::Publisher path_pub,image_pub;
+
 //xStart,yStart,xGoal,yGoal
 void
 GoalCallback (const geometry_msgs::PoseStampedConstPtr & pose_msg)
@@ -40,9 +44,40 @@ StartCallback (const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_cov_
   path_pub.publish(planned_path);
 }
 
+cv::Mat 
+getMat(nav_msgs::OccupancyGrid map)
+{
+  cv::Mat mat(map.info.height, map.info.width, CV_8U, cv::Scalar(0));
+  int dc = 0;
+  for (int y = 0; y < map.info.height; y++) {
+    for (int x = 0; x < map.info.width; x++) {
+      mat.at<int8_t>(y, x) = map.data[dc];  // mat
+      dc++;
+    }
+  }
+  return mat;
+}
+
 void
 MapCallback (const nav_msgs::OccupancyGridConstPtr& map_msg){
   std::cout << "get Map" << std::endl;
+  planning.cell_size = map_msg->info.resolution;
+  planning.map_origin.x() = map_msg->info.origin.position.x;
+  planning.map_origin.y() = map_msg->info.origin.position.y;
+  double roll,pitch,yaw;
+  tf::Quaternion quat;
+  quaternionMsgToTF(map_msg->info.origin.orientation, quat);
+  tf::Matrix3x3(quat).getRPY(roll,pitch,yaw);
+  planning.map_origin.z() = yaw;
+  planning.obstacle_mat = getMat(*map_msg);
+
+  // std_msgs::Header header;
+  // header.frame_id = "map";
+  // sensor_msgs::ImagePtr map_image_msg;
+  // cv::Mat result;
+  // planning.obstacle_mat.convertTo(result, CV_8S);
+  // map_image_msg = cv_bridge::CvImage(header, "mono8", result).toImageMsg();
+  // image_pub.publish(*map_image_msg);
 }
 
 int
